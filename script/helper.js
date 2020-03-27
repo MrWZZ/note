@@ -1,3 +1,51 @@
+// init tool
+
+function InitToolPageBody(pageData) {
+
+    var iframe = document.createElement("iframe");
+    iframe.src = "/note/html/common/content-page.html";
+    iframe.style.display = "none";
+    iframe.onload = function (event) {
+        document.body.innerHTML = event.target.contentDocument.body.innerHTML;
+        var content_title = document.getElementById("content_title");
+        //pageName为目标页面下的数据，是在各个类目页面下自己加载的
+        content_title.innerText = pageName;
+        LoadToolPageToContent(pageData);
+        //标签名字
+        document.title = pageName;
+    }
+    document.body.appendChild(iframe);
+
+}
+
+function LoadToolPageToContent(pageData) {
+
+    SetCategoryData(pageData.url);
+
+    var content = document.getElementById("content");
+    var iframe = document.createElement("iframe");
+    iframe.src = pageData.url;
+    iframe.style.display = "none";
+    iframe.onload = function (event) {
+        content.innerHTML = event.target.contentDocument.body.innerHTML;
+        LoadScript(pageData.scriptUrl)
+        document.body.removeChild(iframe);
+    }
+    document.body.appendChild(iframe);
+}
+
+function LoadScript(path) {
+    var script = document.createElement("script");
+    script.src = path;
+    script.style.display = "none";
+    script.onload = function (event) {
+        document.body.removeChild(script);
+    }
+    document.body.appendChild(script);
+}
+
+// init content
+
 function InitContentPageBody(firstContentPath) {
     window.addEventListener("resize", ChangeTableDisplay);
     var iframe = document.createElement("iframe");
@@ -9,6 +57,8 @@ function InitContentPageBody(firstContentPath) {
         //pageName为目标页面下的数据，是在各个类目页面下自己加载的
         content_title.innerText = pageName;
         LoadPageToContent(firstContentPath);
+        //标签名字
+        document.title = pageName;
     }
     document.body.appendChild(iframe);
 }

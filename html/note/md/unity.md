@@ -19,3 +19,7 @@
 ### 其他
 
 如果使用scroll rect 组件，并使用 content size fitter 组件辅助时，在代码动态添加UI元素使 content size fitter 高度变化，并在同一刻调整 scroll rect 的 verticalNormalizedPosition 位置，在同一帧会计算失败。因为这个时候，UI布局还没有进行计算。需要等待下一帧后它们的布局才会正确赋值。并且要保证scroll rect 的 gameobject 是 激活状态的。
+
+### 游戏管理
+
+游戏中往往会运行多个物体，多个协程。对于和协程有关的，一定要持有所有东西的控制权。

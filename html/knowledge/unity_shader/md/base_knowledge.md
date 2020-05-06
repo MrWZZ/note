@@ -60,3 +60,46 @@ Shader "Shader/Base" {
 }
 ```
 
+### Gamma Space And Linear Space
+
+```
+unity_ColorSpaceDouble 使用unity的这个值可以保证颜色在这两种类型下有相同的效果
+[NoScaleOffset] 属性添加这个标签，这禁止使用位移和缩放
+```
+
+
+
+在shader中，引用这个文件"UnityStandardBRDF.cginc"，可以使用一个点乘函数：DotClamped，他能保证得出的值在0-1之间。就不需要额外使用max()或者saturate()了，而且UnityStandardBRDF.cginc是包含UnityCG.cginc的，就不需要在重复引用了。
+
+
+
+"UnityStandardUtils.cginc"中的一个方法：`EnergyConservationBetweenDiffuseAndSpecular` ，会返回一个纹素值，其值是经过漫反射和高光反射调整后的，保证高光反射能得到正确的效果，并且返回一个额外的数值，返回高光反射强度。
+
+```c++
+float oneMinusReflectivity;
+albedo = EnergyConservationBetweenDiffuseAndSpecular(albedo, _SpecularTint.rgb, oneMinusReflectivity);
+```
+
+
+
+It would be much simpler if we could just toggle between metal and nonmetal. As metals don't have albedo, we could use that color data for their specular tint instead. And nonmetals don't have a colored specular anyway, so we don't need a separate specular tint at all.
+
+
+
+```c++
+// DiffuseAndSpecularFromMetallic 处理金属反射时的效果
+
+float3 specularTint; 
+float oneMinusReflectivity;
+albedo = DiffuseAndSpecularFromMetallic(albedo, _Metallic, specularTint, oneMinusReflectivity);
+```
+
+[Gamma] 让一个值在 linear space 时，也使用 gamma 空间的变化
+
+
+
+```c++
+#include "UnityPBSLighting.cginc"
+// 现在的渲染都采用了pbs渲染，而且也有一个很好的效果
+```
+

@@ -75,6 +75,7 @@ function LoadPageToContent(path) {
         var newContent = marked(event.target.contentDocument.body.innerText);
         content.innerHTML = newContent;
         ChangeTableDisplay();
+        hljs.initHighlighting.called = false;
         hljs.initHighlighting();
         document.body.removeChild(iframe);
     }

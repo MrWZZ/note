@@ -8,6 +8,10 @@ body {
 }
 
 #doc {
+    font-size: large;
+}
+
+code {
     font-size: x-large;
 }
 

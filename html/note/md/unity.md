@@ -51,3 +51,22 @@
 **[Range( 0f, 1f )]**
 
 在脚本的某个字段上添加，使该字段可以通过一个滑动条的形式调整数值
+
+### 空UI接受点击
+
+```c#
+public class EmptyUIRaycast : MaskableGraphic {
+
+    protected EmptyUIRaycast()
+    {
+        useLegacyMeshGeneration = false;
+    }
+
+    protected override void OnPopulateMesh(VertexHelper toFill)
+    {
+        toFill.Clear();
+    }
+    
+}
+```
+

@@ -1,0 +1,374 @@
+# 文字处理
+
+准备：javascript,vscode,chrome,html,正则表达式
+
+一、新建一个文本文件，重命名为 "index.html"
+
+二、用vscode打开，输入一个“!”+Tab，编译器会自动生成一个大纲
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+</html>
+```
+
+三、输入/输出控件，输入"textarea"+Tab
+
+```html
+// 文字输入标签
+// id:控件字段，可通过这个id从代码中获得这个控件的引用
+// cols、rows分别为控件所能容纳的列数、行数，数值越大显示的文字内容越多
+<textarea name="" id="input_text" cols="40" rows="20"></textarea>
+
+// 按钮标签
+<button id="execute_btn">执行</button>
+
+```
+
+四、代码
+
+1. 指定代码标签
+
+```html
+// 代码标签
+// src:代码文本所在的路径，相对路径则以页面所在路径为起点
+<script src="./main.js"></script>
+```
+
+2. 新建代码文本，在“index.html”同目录下新建文件“main.js”
+3. 获取控件引用
+
+```js
+// 在html中，有一些一定定义好的全局对象
+// 其中document对象代表整个html文档,可用来访问页面中的所有元素
+
+var input_text = document.getElementById("input_text");
+var output_text = document.getElementById("output_text");
+var execute_btn = document.getElementById("execute_btn");
+
+// 给按钮绑定事件
+execute_btn.onclick = OnExecuteClick;
+function OnExecuteClick() {
+    console.log("click");
+}
+```
+
+### 正则匹配
+
+语法：```/匹配内容/匹配规则设置```
+
+匹配规则的可选值为：
+g：全局匹配
+i：大小写敏感
+m：多行模式
+
+匹配内容介绍：
+
+1. 特殊字符，这些字符是匹配规则的部分，如果要匹配文本中的这些字符，需要加`\`转义
+
+   `() [] {} \ ^ $ | ? * + - .`
+
+2. 预定意义的特殊字符
+
+
+| 字符 | 描述       |
+| ---- | ---------- |
+| \t   | 制表符     |
+| \n   | 换行符     |
+| \r   | 回车符     |
+| \f   | 换页符     |
+| \v   | 垂直制表符 |
+| \0   | 空字符     |
+
+匹配示例：
+
+
+
+1. 直接类
+
+```js
+var test_content = "va,ar";
+var test_regex = /a/g;
+
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+
+var test_replace = test_content.replace(test_regex,"0");
+console.log(test_replace);
+
+var test_replace_function = test_content.replace(test_regex,ContentReplace);
+console.log(test_replace_function);
+
+// match：匹配到的文字
+// match_index：匹配到的文字所在原内容的位置
+// source_content：原内容
+function ContentReplace(match,match_index,source_content) {
+    if(match_index < 2) {
+        return "0";
+    }
+    else {
+        return "1";
+    }
+}
+```
+
+2. 简单类
+   `[]`方括号表示去分别匹配里面的字符。
+   假设想匹配"bat","cat","fat"。使用简单类可以很方便的解决这个问题。
+
+```js
+var test_content = "a bat,a cat, a fat";
+var test_regex = /[bcf]at/g;
+
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+```
+
+3. 负项类
+   `^`脱字符表示不能匹配后面跟着的字符。
+   假设只想获取包含at但不能以b或c开头的单词
+
+```js
+var test_content = "a bat,a cat, a fat";
+var test_regex = /[^bc]at/g;
+
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+```
+
+4. 范围类
+   `-`减号表示匹配指定范围的字符。
+   假设项匹配num1,num2,num3的字符。
+
+```js
+var test_content = "num1,num2,num3,num4,num5";
+var test_regex = /num[1-3]/g;
+
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+```
+
+​		范围组合
+
+```js
+var test_content = "num1,num2,num3,num4,num5,numh,numi,numj,numk";
+var test_regex = /num[1-3h-j]/g;
+
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+```
+
+​		预定义范围表示：
+
+| 代码 | 等同于          | 匹配                               |
+| ---- | --------------- | ---------------------------------- |
+| .    | [^\n\r]         | 除了换行和回车之外的任意字符       |
+| \d   | [0-9]           | 数字                               |
+| \D   | [^0-9]          | 非数字字符                         |
+| \s   | [\t\n\x0B\f\r]  | 空白字符                           |
+| \S   | [^\t\n\x0B\f\r] | 非空白字符                         |
+| \w   | [a-zA-Z_0-9]    | 单词字符（有所字母、数字、下划线） |
+| \W   | [^a-zA-Z_0-9]   | 非单词字符                         |
+
+5. 定位类
+   
+   可以匹配指定位置的值。
+
+   | 代码 | 描述                                                         |
+   | ---- | ------------------------------------------------------------    |
+   | ^    | 匹配输入字符串开始的位置。如果设置了 RegExp 对象的 Multiline 属性，^ 还会与 \n 或 \r 之后的位置匹配。 |
+   | $    | 匹配输入字符串结尾的位置。如果设置了 RegExp 对象的 Multiline 属性，$ 还会与 \n 或 \r 之前的位置匹配。 |
+   | \b   | 匹配一个单词边界，即字与空格间的位置。                       |
+   | \B   | 非单词边界匹配。                                             |
+
+   假设匹配各个的“car[1-3]”
+
+```js
+var test_content = "car1\ncar2\ncar3";
+
+// 匹配开头
+var test_regex = /^car[1-3]/g;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+
+// 匹配末尾
+var test_regex = /car[1-3]$/g;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+
+// 开启多行模式，匹配开头
+var test_regex = /^car[1-3]/gm;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+
+// 开启多行模式，匹配末尾
+var test_regex = /car[1-3]$/gm;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+```
+
+6. 量词类
+
+   可以匹配指定出现次数的内容
+
+   | 代码  | 描述                   |
+   | ----- | ---------------------- |
+   | ?     | 出现零次或一次         |
+   | *     | 任意次                 |
+   | +     | 出现一次或多次         |
+   | {n}   | 一定出现n次            |
+   | {n,m} | 至少出现n次但不超过m次 |
+   | {n,}  | 至少出现n次            |
+
+   假设匹配car，其中r出现2次以上
+
+```js
+var test_content = "car,carr,carrr";
+
+var test_regex = /car{2,}/g;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+```
+
+贪婪的（默认）：先看整个的字符串是否匹配，如果没有发现匹配，就去掉该字符中的最后一个字符，并再次尝试。
+惰性的（默认后加`?`）：先看字符串的第一个字母是否匹配，如果单独这一个字符不够，就读入下一个字符，并再次尝试。
+支配的（默认后加`+`）：只尝试匹配整个字符串，如果整个字符串不能产生匹配，就不再进一步尝试。
+
+使用惰性支配匹配
+
+```js
+var test_content = "car,carr,carrr";
+
+var test_regex = /car{2,}?/g;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+```
+
+7. 分组
+
+   使用`()`可以对一个整体进行查找匹配
+
+   假设匹配dog两次
+
+   ```js
+   var test_content = "dog,dogdog";
+   
+   var test_regex = /(dog){2}/g;
+   var test_match = test_content.match(test_regex);
+   console.log(test_match);
+   ```
+
+   使用括号进行分组后，可以使用`$`号进行反向引用。
+
+   ```js
+   var test_content = "dog,dogdog";
+   
+   var test_regex = /(do)g(,)/g;
+   var test_match = test_content.match(test_regex);
+   console.log(test_match);
+   console.log(RegExp.$1);
+   console.log(RegExp.$2);
+   
+   // 反向查找只会匹配最后一次出现的内容
+   var test_regex = /(dog[,d])/g;
+   // 这个对上面的内容匹配的话，因为dogd在最后一次匹配中，所以"$1"只会显示dogd
+   
+   // 但是反向查找会消耗性能，如果没有必要，可以使用"?:"来指示不需要该组的反向引用
+   var test_regex = /(?:dog[,d])/g;
+   
+   ```
+
+   `|`：候选匹配，类是方括号的匹配，是里面的内容没有重复的时候使用
+
+   假设匹配"red"或"black"
+
+   ```js
+   var test_content = "red,yellow,blue,black";
+   
+   var test_regex = /(red|black)/g;
+   var test_match = test_content.match(test_regex);
+   console.log(test_match);
+   ```
+
+8. 前瞻后瞻
+
+   有时候，我们想当匹配的内容前面或后面出现某些字符的时候，才去匹配，可以使用这个语法，且这种语法不会有反向引用
+
+   这个语法在某些浏览器上不支持，一般可以在chrome浏览器上使用
+
+```js
+var test_content = "red1_apple,red2_dog,red3_cat";
+
+// 正向前瞻：(?=)
+// 正向前瞻检查的是接下来出现的是不是某个特定字符集。
+var test_regex = /red\d+_(?=dog)/g;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+
+// 负向前瞻：(?!)
+// 负向前瞻检查的是接下来不应该出现的特定的字符集
+var test_regex = /red\d+_(?!dog)/g;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+
+// -------------------匹配内容变更
+
+// 正向后瞻：(?<=)
+// 正向后瞻检查先出现某个特定字符集后，再匹配后面的内容
+var test_content = "apple_red1,dog_red2,cat_red3";
+
+var test_regex = /(?<=apple)_red\d+/g;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+
+// 负向后瞻：(?<!)
+// 负向后瞻检查不先出现某个特定字符集后，再匹配后面的内容
+var test_regex = /(?<!apple)_red\d+/g;
+var test_match = test_content.match(test_regex);
+console.log(test_match);
+```
+
+
+
+## 匹配原理
+
+ [正则匹配原理原文链接](https://blog.csdn.net/weixin_34075551/article/details/93571810)
+
+那 NFA 自动机到底是怎么进行匹配的呢？我们以下面的字符和表达式来举例说明。
+
+```
+text="Today is a nice day."
+regex="day"
+```
+
+要记住一个很重要的点，即：NFA 是以正则表达式为基准去匹配的。也就是说，NFA 自动机会读取正则表达式的一个一个字符，然后拿去和目标字符串匹配，匹配成功就换正则表达式的下一个字符，否则继续和目标字符串的下一个字符比较。或许你们听不太懂，没事，接下来我们以上面的例子一步步解析。
+
+- 首先，拿到正则表达式的第一个匹配符：d。于是那去和字符串的字符进行比较，字符串的第一个字符是 T，不匹配，换下一个。第二个是 o，也不匹配，再换下一个。第三个是 d，匹配了，那么就读取正则表达式的第二个字符：a。
+- 读取到正则表达式的第二个匹配符：a。那着继续和字符串的第四个字符 a 比较，又匹配了。那么接着读取正则表达式的第三个字符：y。
+- 读取到正则表达式的第三个匹配符：y。那着继续和字符串的第五个字符 y 比较，又匹配了。尝试读取正则表达式的下一个字符，发现没有了，那么匹配结束。
+
+上面这个匹配过程就是 NFA 自动机的匹配过程，但实际上的匹配过程会比这个复杂非常多，但其原理是不变的。
+
+
+
+**回溯匹配：**
+
+了解了 NFA 是如何进行字符串匹配的，接下来我们就可以讲讲这篇文章的重点了：回溯。为了更好地解释回溯，我们同样以下面的例子来讲解。
+
+```
+text="abbc"regex="ab{1,3}c"
+```
+
+上面的这个例子的目的比较简单，匹配以 a 开头，以 c 结尾，中间有 1-3 个 b 字符的字符串。NFA 对其解析的过程是这样子的：
+
+- 首先，读取正则表达式第一个匹配符 a 和 字符串第一个字符 a 比较，匹配了。于是读取正则表达式第二个字符。
+- 读取正则表达式第二个匹配符 b{1,3} 和字符串的第二个字符 b 比较，匹配了。但因为 b{1,3} 表示 1-3 个 b 字符串，以及 NFA 自动机的贪婪特性（也就是说要尽可能多地匹配），所以此时并不会再去读取下一个正则表达式的匹配符，而是依旧使用 b{1,3} 和字符串的第三个字符 b 比较，发现还是匹配。于是继续使用 b{1,3} 和字符串的第四个字符 c 比较，发现不匹配了。此时就会发生回溯。
+- 发生回溯是怎么操作呢？发生回溯后，我们已经读取的字符串第四个字符 c 将被吐出去，指针回到第三个字符串的位置。之后，程序读取正则表达式的下一个操作符 c，读取当前指针的下一个字符 c 进行对比，发现匹配。于是读取下一个操作符，但这里已经结束了。

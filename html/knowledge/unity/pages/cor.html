@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+<body>
+<xmp>
+
+### 协程管理
+
+功能：提供容器储存每一个开启的协程。
+
+```java
+public class MahjongCorManager : MonoBehaviour
+{
+
+    Stack<CorData> corDataPool;
+    Stack<Dictionary<Guid, CorData>> corListPool;
+    Dictionary<string, Dictionary<Guid, CorData>> corlistDic;
+
+    public class CorData
+    {
+        public Coroutine cor;
+        public Action onComplete;
+        public Action onCancel;
+    }
+
+    public void Init()
+    {
+        corDataPool = new Stack<CorData>();
+        corListPool = new Stack<Dictionary<Guid, CorData>>();
+        corlistDic = new Dictionary<string, Dictionary<Guid, CorData>>();
+    }
+
+    /// <summary>
+    /// 统一控制协程开启
+    /// </summary>
+    /// <param name="corName">类型类型标识</param>
+    /// <param name="ie">迭代器</param>
+    /// <param name="canMutil">是否允许同时开启多个相同标识的协程</param>
+    /// <param name="OnComplete"></param>
+    /// <param name="onCancel"></param>
+    public Coroutine EStartCoroutine(string token, IEnumerator ie, CorMutilEnum mutil = CorMutilEnum.Break, Action onComplete = null, Action onCancel = null)
+    {
+        var guid = Guid.NewGuid();
+        CorData corData = null;
+        if (corlistDic.ContainsKey(token))
+        {
+            Dictionary<Guid, CorData> list;
+            switch (mutil)
+            {
+                case CorMutilEnum.Break:
+                    Debuger.Log("操作被忽略：" + token);
+                    corData = corlistDic[token].First().Value;
+                    break;
+                case CorMutilEnum.Cover:
+                    Debuger.Log("操作被覆盖：" + token);
+                    EStopCoroutine(token);
+
+                    list = PopCorListItem();
+                    var corCover = StartCoroutine(CorOperate(token,guid,ie));
+                    corData = PopCorData();
+                    corData.cor = corCover;
+                    corData.onComplete = onComplete;
+                    corData.onCancel = onCancel;
+
+                    list.Add(guid,corData);
+                    corlistDic.Add(token, list);
+                    break;
+                case CorMutilEnum.Mutil:
+                    list = corlistDic[token];
+                    var corMutil = StartCoroutine(CorOperate(token,guid,ie));
+                    corData = PopCorData();
+                    corData.cor = corMutil;
+                    corData.onComplete = onComplete;
+                    corData.onCancel = onCancel;
+                    list.Add(guid, corData);
+                    break;
+            }
+        }
+        else
+        {
+            var list = PopCorListItem();
+            var corNew = StartCoroutine(CorOperate(token,guid,ie));
+            corData = PopCorData();
+            corData.cor = corNew;
+            corData.onComplete = onComplete;
+            corData.onCancel = onCancel;
+            list.Add(guid,corData);
+            corlistDic.Add(token, list);
+        }
+
+        return corData.cor;
+    }
+
+    /// <summary>
+    /// 停止所有该标识下的协程
+    /// </summary>
+    /// <param name="token"></param>
+    public void EStopCoroutine(string token)
+    {
+        if (corlistDic.ContainsKey(token))
+        {
+            var list = corlistDic[token];
+            foreach (var item in list)
+            {
+                if(item.Value.onCancel != null)
+                {
+                    item.Value.onCancel.Invoke();
+                }
+                PushCorData(item.Value);
+            }
+            PushCorListItem(list);
+            corlistDic.Remove(token);
+        }
+    }
+
+    private CorData PopCorData()
+    {
+        if(corDataPool.Count > 0)
+        {
+            return corDataPool.Pop();
+        }
+        else
+        {
+            return new CorData();
+        }
+    }
+
+    private void PushCorData(CorData data)
+    {
+        if(data.cor!=null)
+        {
+            StopCoroutine(data.cor);
+            data.cor = null;
+        }
+        data.onCancel = null;
+        data.onComplete = null;
+        corDataPool.Push(data);
+    }
+
+    private Dictionary<Guid,CorData> PopCorListItem()
+    {
+        if (corListPool.Count > 0)
+        {
+            return corListPool.Pop();
+        }
+        else
+        {
+            return new Dictionary<Guid, CorData>();
+        }
+    }
+
+    private void PushCorListItem(Dictionary<Guid, CorData> list)
+    {
+        list.Clear();
+        corListPool.Push(list);
+    }
+
+    private IEnumerator CorOperate(string token,Guid guid,IEnumerator ie)
+    {
+        while (true)
+        {
+            if (ie != null && ie.MoveNext())
+            {
+                yield return ie.Current;
+            }
+            else
+            {
+                if (corlistDic.ContainsKey(token))
+                {
+                    var list = corlistDic[token];
+                    var data = list[guid];
+                    if(data.onComplete != null)
+                    {
+                        data.onComplete.Invoke();
+                    }
+                    PushCorData(data);
+                    list.Remove(guid);
+
+                    if(list.Count <= 0)
+                    {
+                        PushCorListItem(list);
+                        corlistDic.Remove(token);
+                    }
+                }
+
+                yield break;
+            }
+        }
+    }
+}
+```
+</xmp>
+</body>
+</html>

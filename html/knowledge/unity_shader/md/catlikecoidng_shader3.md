@@ -1,0 +1,169 @@
+### 多光照
+
+由于shaderlad没有类的定义，我们要想重用代码，可以采用定义自己的cginc文件来达到重用代码的效果。在之前写的着色器文件同目录下，新建一个文本文件，命名为“MyLight.cginc”。把`#pragma `到`CGEND`下的内容复制进去。
+
+为了让里面的内容不会和别的地方重复，我们可以定义宏，以保证这里面的内容只被引用一次：
+
+```c++
+#if !defined(MY_LIGHTING_INCLUDED)
+#define MY_LIGHTING_INCLUDED
+
+// 内容
+
+#endif
+```
+
+然后我们在自己的着色器文件中，就可以直接引用这个文件了。因为在同级目录下，直接输入文件名即可。
+
+```c++
+CGPROGRAM
+
+#pragma target 3.0
+
+#pragma vertex vert
+#pragma fragment frag
+
+// 引用刚才的文件
+#include "MyLighting.cginc"
+
+ENDCG
+```
+
+场景中有多个光源，我们需要一个额外的Pass来处理：
+
+```c++
+Pass {
+    Tags {
+        "LightMode" = "ForwardAdd"
+    }
+    
+    // 让多个光源的效果混合
+	Blend One One
+    // 在ForwardBase中已经有深度缓存，这里不需要重复
+    ZWrite Off
+        
+    CGPROGRAM
+
+    #pragma target 3.0
+
+    #pragma vertex MyVertexProgram
+    #pragma fragment MyFragmentProgram
+
+    #include "My Lighting.cginc"
+
+    ENDCG
+}
+```
+
+在加入了`ForwardAdd`Pass后，在检视面板中看材质球，会发现背面也被渲染了，这个是没关系的，在实际场景中是不会出现这个情况的。
+
+与直射光不同，点光源等是有光照衰减这个概念的。引入*`AutoLight.cginc`*文件，为衰减计算提供支持。
+
+![autolight](..\res\autolight.png)
+
+
+
+其中，`UNITY_LIGHT_ATTENUATION() `方法可以得到光的衰减，他接受3个参数：
+
+```c++
+// 参数1：将接收光强度的名称，这个参数不需要声明，在使用这个方法时，解释器会自动声明该变量
+// 参数2：阴影强度，不需要阴影的话可以设置为0
+// 参数3：点的世界空间下的坐标
+UNITY_LIGHT_ATTENUATION(attenuation, 0, i.worldPos);
+```
+
+`UNITY_LIGHT_ATTENUATION`的内部实现：
+
+```c++
+#ifdef POINT
+uniform sampler2D _LightTexture0;
+uniform unityShadowCoord4x4 unity_WorldToLight;
+#define UNITY_LIGHT_ATTENUATION(destName, input, worldPos) \
+	unityShadowCoord3 lightCoord = \
+		mul(unity_WorldToLight, unityShadowCoord4(worldPos, 1)).xyz; \
+	fixed destName = \
+		(tex2D(_LightTexture0, dot(lightCoord, lightCoord).rr). \
+		UNITY_ATTEN_CHANNEL * SHADOW_ATTENUATION(input));
+#endif
+```
+
+可见，这个参数是作用于`POINT`宏下的，所以为了使点光源起作用，我们需要在`Pass`中定义这个宏：
+
+```c++
+Pass {
+			
+    Tags {"LightMode" = "ForwardAdd"}
+
+    Blend One One
+    ZWrite Off
+
+    CGPROGRAM
+
+    #pragma vertex vert
+    #pragma fragment frag
+    #pragma target 3.0
+		
+    // 在MyLight.cginc前定义
+    // 为直射光、点光源、锥光源适配
+    // 光源是可以使用遮罩cookie的，如果要使用的话，我们需要添加额外的宏
+    // 则整体的指令如下
+    //#pragma multi_compile DIRECTIONAL DIRECTIONAL_COOKIE POINT POINT_COOKIE SPOT
+    // 但unity内置的定义可以包含上面的声明
+    #pragma multi_compile_fwdadd
+
+    #include "MyLight.cginc"
+
+    ENDCG
+}
+
+// MyLight.cginc文件中
+UnityLight CreateLight (v2f i) {
+	UnityLight light;
+    
+    // 这里需要对点光源和其他光源做适配
+    #if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
+		light.dir = normalize(_WorldSpaceLightPos0.xyz - i.worldPos);
+	#else
+		light.dir = _WorldSpaceLightPos0.xyz;
+	#endif
+	
+    UNITY_LIGHT_ATTENUATION(attenuation, 0, i.worldPos);
+	light.color = _LightColor0.rgb * attenuation;
+	light.ndotl = DotClamped(i.normal, light.dir);
+	return light;
+}
+```
+
+如果场景中的光源很多，则会给渲染带来很大一压力，我们可以把一些光源的计算从片元中移到顶点，较少计算量：
+
+```c++
+// “_” 指示不启用其他编译指令
+// VERTEXLIGHT_ON 指示启用顶点光线计算
+// 在顶点方法中声明
+#pragma multi_compile _ VERTEXLIGHT_ON
+```
+
+计算非像素光源时，我们可以通过一个内置的方法，得到最多4个光源的影响结果：
+
+```c++
+void ComputeVertexLightColor (inout Interpolators i) {
+	#if defined(VERTEXLIGHT_ON)
+		i.vertexLightColor = Shade4PointLights(
+            // unity_4LightPos[XYZW][0123]分别代表4个光源的位置
+			unity_4LightPosX0, unity_4LightPosY0, unity_4LightPosZ0,
+			unity_LightColor[0].rgb, unity_LightColor[1].rgb,
+			unity_LightColor[2].rgb, unity_LightColor[3].rgb,
+            // unity_4LightAtten[0123]代表4个光源的强度
+			unity_4LightAtten0, i.worldPos, i.normal
+		);
+	#endif
+}
+```
+
+如果光源大于9个，可以采用球协函数，模拟结果。
+
+```c++
+// 这个函数应该用于ForwardBase
+max(0, ShadeSH9(float4(i.normal, 1)));
+```
+

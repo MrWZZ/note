@@ -1,0 +1,158 @@
+# 托管代码和非托管代码
+
+**托管代码：**
+
+　　就是中间语言(IL)代码，在公共语言运行库(CLR)中运行。编译器把代码编译成中间语言，当方法被调用时，CLR把具体的方法编译成适合本地计算机运行的机器码，并且将编译好的机器码缓存起来，以备下次调用使用。随着程序集的运行，CLR提供各种服务：内存管理，安全管理，线程管理，垃圾回收，类型检查等等。
+
+**非托管代码：**
+
+　　直接编译成目标计算机码，在公共语言运行库环境的外部，由操作系统直接执行的代码，代码必须自己提供垃圾回收，类型检查，安全支持等服务。如需要内存管理等服务，必须显示调用操作系统的接口，通常调用Windows SDK所提供的API来实现内存管理。
+
+**托管代码和非托管代码的区别：**
+
+1. 托管代码是一种中间语言，运行在CLR上；非托管代码被编译为机器码，运行在机器上。
+2. 托管代码独立于平台和语言，能更好的实现不同语言平台之间的兼容；非托管代码依赖于平台和语言。
+3. 托管代码可享受CLR提供的服务（如安全检测、垃圾回收等），不需要自己完成这些操作；非托管代码需要自己提供安全检测、垃圾回收等操作。
+
+**托管代码与非托管代码的性能比较**      
+
+　　基本上每个人都知道的是，所有.Net语言都将被编译成为一个叫做IL汇编的中间语言。但是计算机是如何执行这个中间代码的，却是很多人不知道，甚至理解错误了的。JIT是.NET程序运行的重要部件之一，全称是即时编译器。很多人都以为JIT其实就是跟Java VM差不多的东西，是一个Interpreter，在运行时读取IL汇编代码，然后模拟成x86代码（也就是俗称的虚拟机）。但是事实上，.NET使用的是更为高级的技术。 .Net程序被加载入内存以后，当某段IL代码被第一次运行的时候，JIT编译器就会将这段IL代码，全部编译成本地代码，然后再执行。这也就是为什么.NET程序第一次运行都启动很慢的原因！ 随.NET库，微软还附带了一个工具，可以事先将.NET程序所有的IL代码都编译成本地代码并保存在缓存区中，这样一来，这个程序就跟c++编译的一模一样了，没有任何区别，运行时也可以脱离JIT了（这里不要混淆了，这里不是说可以脱离.NET库，而是说不需要在进行即时编译这个过程了）。所以，请不要将.NET和Java混为一谈，两个的运行效率根本不是一个等级的！
+
+　　JIT的优化指的是可以针对本地CPU，在编译时进行优化。传统程序在编译时，为了保证兼容性，通常使用最通用的指令集（比如古老的386指令集）来编译。而JIT知道CPU的具体类型，可以充分利用这些附加指令集进行编译，这样的性能提升是很可观的。
+
+# SynchronizationContext
+
+简介：SynchronizationContext可以使一个线程与另一个线程进行通信，可以让线程共享作用域。一般用在UI线程中。
+
+如果我们非要在非UI线程中使用await，怎样让await生效：
+
+**方法一：**await会捕获当前SynchronizationContext，因此手动设SynchronizationContext，然后再用await：
+
+```c#
+//设置SynchronizationContext，以WPF为例
+System.Threading.SynchronizationContext.SetSynchronizationContext(
+	new System.Windows.Threading.DispatcherSynchronizationContext(App.Current.Dispatcher)
+);
+
+//await（Task.Run是模拟执行的多线程操作）
+await Task.Run(() => Task.Delay(1000));
+
+//await后安全访问UI
+```
+
+**方法二：**设置SynchronizationContext，然后用针对SynchronizationContext的TaskScheduler来执行await后代码：
+
+```c#
+//设置SynchronizationContext，以WPF为例
+System.Threading.SynchronizationContext.SetSynchronizationContext(
+	new System.Windows.Threading.DispatcherSynchronizationContext(App.Current.Dispatcher)
+);
+
+//Task.Run是模拟执行的多线程操作
+Task.Run(() => Task.Delay(1000)).ContinueWith(
+    (task) =>
+	{
+		//await后安全访问UI
+	},
+	//使用TaskScheduler.FromCurrentSynchronizationContext方法来返
+	//回针对当前SynchronizationContext的TaskScheduler
+	TaskScheduler.FromCurrentSynchronizationContext()
+);
+```
+
+# ISupportInitialize
+
+简介：指定该对象支持对批初始化的简单的事务处理通知。一般用于一个复杂的对象或者wpf中自动生成的对象。
+
+其中：BeginInit调用方法以指示初始化正在启动的对象。 EndInit调用方法以通知初始化已完成。
+
+# IDisposable
+
+简介：在对象被释放时调用，实现时用于显示释放资源或进行回收工作。
+
+一般实现步骤：
+
+1. 实现Dispose方法；
+2. 提取一个受保护的Dispose虚方法，在该方法中实现具体的释放资源的逻辑；
+3. 添加析构函数；
+4. 添加一个私有的bool类型的字段，作为释放资源的标记
+
+# IEquatable
+
+　　我们知道，Object基类的Equals方法存在两个明显的问题。一是缺乏类型安全性，二是对于值类型而言需要装箱。在本文中我们就来看下`IEquatable<T>`接口是如何解决这两个问题的。
+
+　　我们都知道的一个事实是：如果想让Object的Equals方法为所有派生类型所用，那么，它的参数就必须设计成object类型。
+
+　　object是引用类型，这就意味着，如果传递一个值类型的参数，那么该参数将被装箱，这就会造成性能损失。
+
+　　另外，还存在另一个问题：将object类型设为参数还意味着类型安全性的缺失。
+
+　　解决装箱和类型安全性问题的一个办法就是定义一个新的Equals方法，该方法接受一个和待比较类型相同类型的参数。例如，对于字符串类型而言，定义一个接受string类型的Equals方法就能圆满解决这两个问题。
+
+　　但这会面临另一个新的问题，那就是：定义强类型的方法和OOP中的继承存在根本的冲突。我们不能在Object基类中定义一个强类型的Equals方法，因为Object基类根本无法知晓派生类的类型。
+
+``` c#
+using System;
+ 
+namespace System
+{
+    public interface IEquatable<T>
+    {
+        bool Equals(T other);
+    }
+}
+```
+
+　　该Equals方法和Object基类的虚Equals方法的作用相同，只不过它接受一个T类型参数，因此，它是强类型的，这意味着对于值类型而言，不存在装箱的问题。
+
+# INotifyCompletion
+
+`async`/`await` 是给编译器用的，只要我们的类包含一个 `GetAwaiter` 方法，并返回合适的对象，我们就能让这个类的实例被 `await` 使用了。
+
+要想使一个方法可被 `await` 等待，必须具备以下条件：
+
+1. 这个方法返回一个类 A 的实例，这个类 A 必须满足后面的条件。
+2. 此类 A 有一个可被访问到的 `GetAwaiter` 方法，方法返回类 B 的实例，这个类 B 必须满足后面的条件；
+3. 此类 B 实现 `INotifyCompletion` 接口，且拥有 `bool IsCompleted { get; }` 属性、`GetResult()` 方法、`void OnCompleted(Action continuation)` 方法。
+
+``` c#
+private Test DoAsync()
+{
+    return new Test();
+}
+
+public class Test
+{
+    public Test2 GetAwaiter()
+    {
+        return new Test2();
+    }
+}
+
+public class Test2 : INotifyCompletion
+{
+    public bool IsCompleted { get; }
+    public void GetResult() { }
+    public void OnCompleted(Action continuation) { }
+}
+```
+
+# SetSocketOption
+
+``` c#
+socket.SetSocketOption(SocketOptionLevel.Socket,SocketOptionName.ReuseAddress, true);
+```
+
+**SocketOptionName.ReuseAddress：**端口可重复绑定，同一时刻，有多个服务端绑定了同一个端口，并不会报错，但是后面的服务端接收到客户端连接。在缺省条件下，一个套接口不能与一个已在使用中的本地地址捆绑`bind()`。但有时会需要“重用”地址。因为每一个连接都由本地地址和远端地址的组合唯一确定，所以只要远端地址不同，两个套接口与一个地址捆绑并无大碍。为了通知套接口实现不要因为一个地址已被一个套接口使用就不让它与另一个套接口捆绑，应用程序可在 `bind()` 调用前先设置 SO_REUSEADDR 选项。请注意仅在 `bind()` 调用时该选项才被解释;故此无需(但也无害)将一个不会共用地址的套接口设置该选项，或者在 `bind()` 对这个或其他套接口无影响情况下设置或清除这一选项。
+
+**SO_REUSEADDR 提供如下四个功能：**
+
+- SO_REUSEADDR：允许启动一个监听服务器并捆绑其众所周知端口，即使以前建立的将此端口用做他们的本地端口的连接仍存在。这通常是重启监听服务器时出现，若不设置此选项，则bind时将出错。
+- SO_REUSEADDR：允许在同一端口上启动同一服务器的多个实例，只要每个实例捆绑一个不同的本地IP地址即可。对于TCP，我们根本不可能启动捆绑相同IP地址和相同端口号的多个服务器。
+- SO_REUSEADDR：允许单个进程捆绑同一端口到多个套接口上，只要每个捆绑指定不同的本地IP地址即可。这一般不用于TCP服务器。
+- SO_REUSEADDR：允许完全重复的捆绑：当一个IP地址和端口绑定到某个套接口上时，还允许此IP地址和端口捆绑到另一个套接口上。一般来说，这个特性仅在支持多播的系统上才有，而且只对UDP套接口而言(TCP不支持多播)。
+
+　　一般地，我们需要设置 socket 为非阻塞模式，缘由如果我们是阻塞模式，有可能会导致原有占用端口服务无法使用或自身程序无法使用，由此可见，端口复用使用非阻塞模式是比较保险的。
+
+　　端口复用真正的用处主要在于服务器编程：当服务器需要重启时，经常会碰到端口尚未完全关闭的情况，这时如果不设置端口复用，则无法完成绑定，因为端口还处于被别的套接口绑定的状态之中。
+

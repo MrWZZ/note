@@ -1,4 +1,3 @@
-var pageName = "Unity_Shader";
 var pages = [
     {name : "基础知识",url:"./pages/base_knowledge.html"},
     {name : "阴影",url:"./pages/shadow.html"},

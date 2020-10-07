@@ -52,21 +52,22 @@
 
 在脚本的某个字段上添加，使该字段可以通过一个滑动条的形式调整数值
 
-### 空UI接受点击
+## Awake 和 Start 区别
 
-```c#
-public class EmptyUIRaycast : MaskableGraphic {
+Awake在脚本被实例化的时候就会被调用（不管脚本是不是enable的），而且在脚本的生命周期中只会被调用一次。Awake是在所有对象实例化之后，所以我们可以放心大胆地去使用诸如GmeObject.Fine之类的方法来在Awake中给各个组件之间添加引用 关系。Awake会在所有对象的Start之前调用，但是注意不同对象之间的Awake顺序是不得而知的。
 
-    protected EmptyUIRaycast()
-    {
-        useLegacyMeshGeneration = false;
-    }
+Start是在对象被第一次enable之后，在Update之前调用的，Start在脚本的生命周期中也只可能被调用一次。Start可能不会被立刻调用，比如我们之前没有让其enable，当脚本被enable时，Start才会被调用。
 
-    protected override void OnPopulateMesh(VertexHelper toFill)
-    {
-        toFill.Clear();
-    }
-    
-}
-```
+官方文档的建议是：尽量在Awake函数中进行初始化操作，除非有A依赖B，B必须在A实例化之前完成初始化，那么A在Start，B放在Awake中可以保证A在B之后才被初始化（不过个人感觉还是应该尽量都在Awake中进行对象间的引用，然后手动调用Init函数进行初始化，这样可以自己控制初始化的顺序）。
 
+总结
+最后总结一下Awake和Start的异同点：
+相同点：
+1）两者都是对象初始化时调用的，都在Update之前，场景中的对象都生成后才会调用Awake，Awake调用完才会调用Start，所有Start调用完才会开始Update。
+2）两者在对象生命周期内都只会被调用一次，即初始化时被调用，之后即使是在被重新激活之后也不会再次被调用。
+不同点：
+1）Awake函数在对象初始化之后立刻就会调用，换句话说，对象初始化之后第一调用的函数就是Awake；而Start是在对象初始化后，第一次Update之前调用的，
+在Start中进行初始化不是很安全，因为它可能被其他自定义的函数抢先。
+2）Awake不管脚本是否enabled都会被调用；而Start如果对象被SetAcive(false)或者enabled= false了是不会被调用的。
+3）如果对象（GameObject）本身没激活，那么Awake，Start都不会调用。
+注：非常感谢qq_40214558同学的提醒，之前写错了一个地方，原本写成了“Awake不管脚本是否enable和GameObject是否激活都会执行Awake”，这是不对的，GameObject本身没激活的话，Awake和Start是都不会调用的。本人真诚地向可能被影响到的同学道歉。

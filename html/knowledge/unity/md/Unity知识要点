@@ -1,0 +1,22 @@
+## Unity知识要点
+
+三：物体发生碰撞的必要条件？
+
+两个物体都必须带有碰撞器（Collider），其中一个物体还必须带有Rigidbody刚体，而且必须是运动的物体带有Rigidbody脚本才能检测到碰撞。
+
+四：请简述ArrayList和List的主要区别？
+
+ArrayList存在不安全类型（ArrayList会把所有插入其中的数据都当做Object来处理），装箱拆箱的操作（费时），List是泛型类，功能跟ArrayList相似，但不存在ArrayList所说的问题。
+
+生命周期
+
+![monobehaviour_flowchart](..\res\monobehaviour_flowchart.svg)
+
+七：MeshRender中material和sharedmaterial的区别？
+
+修改sharedMaterial将改变所有物体使用这个材质的外观，并且也改变储存在工程里的材质设置。不推荐修改由sharedMaterial返回的材质。如果你想修改渲染器的材质，使用material替代。
+
+十五：在物体发生碰撞的整个过程中，有几个阶段，分别列出对应的函数
+
+三个阶段，1.OnCollisionEnter 2.OnCollisionStay 3.OnCollisionExit
+

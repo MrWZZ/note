@@ -1,39 +1,28 @@
-# note
+### 新建内容分类
 
-#### 介绍
-{**以下是码云平台说明，您可以替换此简介**
-码云是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用码云实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+在html/knowledge目录下新建一个目录，如命名为:lua
 
-#### 软件架构
-软件架构说明
+则lua目录的结构为:
 
+lua
+  -- md
+     存放md文件
 
-#### 安装教程
+  -- pages
+     存放html文件
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+  -- res
+     存放页面需要使用的图片
 
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
-
-
-#### 码云特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  码云官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解码云上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是码云最有价值开源项目，是码云综合评定出的优秀开源项目
-5.  码云官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  码云封面人物是一档用来展示码云会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+  -- pages.js
+     配置页面
+```js
+// 页面的标题
+var pageName = "Lua";
+// 页面下有那些分类
+var pages = [
+    { name : "基本类型", url:"./pages/baseType.html"},
+];
+```
+  -- lua.html
+     存放lua主页面

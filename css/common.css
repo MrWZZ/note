@@ -29,6 +29,11 @@ body {
     text-shadow: 1px 1px #443d03;
 }
 
+.nav_cell:hover {
+    cursor: pointer;
+    background-color: #e4e6ab;
+}
+
 .category_cell {
     text-align: center;
     font-size: large;

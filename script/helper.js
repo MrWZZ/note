@@ -3,6 +3,10 @@ function InitHomePage() {
     var nav = document.getElementById("nav");
     var data = Config.navigationData;
     for (var i = 0; i < data.length; i++) {
+        
+        // 不显示主页按钮
+        if (data[i].title == "主页") { continue; }
+
         var td = document.createElement("td");
         td.innerHTML = data[i].title;
         td.setAttribute("onclick", `window.location.href = "${data[i].url}"`);
@@ -95,9 +99,9 @@ function LoadPageToContent(path) {
         hljs.initHighlighting.called = false;
         hljs.initHighlighting();
         // 如果高度小于窗口高度，这设置为窗口高度
-        if(content.scrollHeight < window.innerHeight) {
+        if (content.scrollHeight < window.innerHeight) {
             var nav = document.getElementById("nav");
-            category.style.height = `${window.innerHeight - nav.clientHeight}px`; 
+            category.style.height = `${window.innerHeight - nav.clientHeight}px`;
         }
         else {
             category.style.height = `${content.scrollHeight}px`;

@@ -4,9 +4,7 @@ function Config() {
     self.navigationData = [
         { title: "主页", url: "/note/index.html" },
         { title: "知识", url: "/note/html/knowledge/knowledge.html" },
-        { title: "笔记", url: "/note/html/note/note.html" },
-        { title: "游戏", url: "/note/index.html" },
-        { title: "工具", url: "/note/html/tool/tool.html" }
+        { title: "随笔", url: "/note/html/note/note.html" }
     ]
 
     // 通用内容页面地址
@@ -16,19 +14,9 @@ function Config() {
     // 知识页面信息
     self.knowledgeData = [
         {
-            title: "语言",
+            title: "语法",
             type: [
-                { name: "C#", url: `${knowledgeRootPath}` },
-                { name: "C++", url: "" },
                 { name: "Lua", url: `${knowledgeRootPath}/lua/lua.html` },
-                { name: "JavaScript", url: "" },
-            ]
-        },
-        {
-            title: "Unity3D",
-            type: [
-                { name: "Unity引擎", url: "" },
-                { name: "UnityShader", url: `${knowledgeRootPath}/unityShader/unityShader.html` },
             ]
         }
     ]

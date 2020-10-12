@@ -8,7 +8,7 @@ function Config() {
     ]
 
     // 通用内容页面地址
-    self.contentPagePath = "/note/html/knowledge/content.html";
+    self.contentPagePath = "/note/html/content.html";
 
     var knowledgeRootPath = "/note/html/knowledge";
     // 知识页面信息

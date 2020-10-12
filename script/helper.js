@@ -90,22 +90,10 @@ function LoadPageToContent(path) {
     iframe.src = path;
     iframe.style.display = "none";
     iframe.onload = function (event) {
-        // 设置左侧导航高度
-        var category = document.getElementById("category");
-        // 先重置高度
-        category.style.height = `0px`;
         var parseText = marked(event.target.contentDocument.body.innerText);
         content.innerHTML = parseText;
         hljs.initHighlighting.called = false;
         hljs.initHighlighting();
-        // 如果高度小于窗口高度，这设置为窗口高度
-        if (content.scrollHeight < window.innerHeight) {
-            var nav = document.getElementById("nav");
-            category.style.height = `${window.innerHeight - nav.clientHeight}px`;
-        }
-        else {
-            category.style.height = `${content.scrollHeight}px`;
-        }
         document.body.removeChild(iframe);
     }
     document.body.appendChild(iframe);

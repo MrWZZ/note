@@ -4,7 +4,7 @@ function Config() {
     self.navigationData = [
         { title: "主页", url: "/note/index.html" },
         { title: "知识", url: "/note/html/knowledge/knowledge.html" },
-        { title: "随笔", url: "/note/html/note/note.html" }
+        { title: "随笔", url: "/note/html/note/index/note.html" }
     ]
 
     // 通用内容页面地址
@@ -16,7 +16,13 @@ function Config() {
         {
             title: "语法",
             type: [
-                { name: "Lua", url: `${knowledgeRootPath}/lua/lua.html` },
+                { name: "Lua", url: `${knowledgeRootPath}/lua/index/lua.html` },
+            ]
+        },
+        {
+            title: "编程思想",
+            type: [
+                { name: "数据结构和算法", url: `${knowledgeRootPath}/algorithms/index/algorithms.html` },
             ]
         }
     ]

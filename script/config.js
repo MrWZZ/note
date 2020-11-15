@@ -23,6 +23,7 @@ function Config() {
             title: "编程思想",
             type: [
                 { name: "数据结构和算法", url: `${knowledgeRootPath}/algorithms/index/algorithms.html` },
+                { name: "压缩算法", url: `${knowledgeRootPath}/compressionAlgorithm/index/compressionAlgorithm.html` },
             ]
         }
     ]

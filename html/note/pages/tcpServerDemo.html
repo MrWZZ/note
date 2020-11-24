@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<xmp>
+### TCP异步链接示例
+
+```c#
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+
+namespace N
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            TServer server = null;
+            TClient client = null;
+
+            while(true)
+            {
+                string msg = Console.ReadLine();
+                switch (msg)
+                {
+                    case "s":
+                        Console.WriteLine("启动服务器");
+                        server = new TServer();
+                        break;
+                    case "c":
+                        Console.WriteLine("输入客户端id");
+                        string idstring = Console.ReadLine();
+                        int id = int.Parse(idstring);
+                        client = new TClient(id);
+                        break;
+                    case "s all":
+                        Console.WriteLine("输入给全体客户端发送的消息");
+                        string m = Console.ReadLine();
+                        server.SendAll(m);
+                        break;
+                    case "s id":
+                        Console.WriteLine("输入要发送的客户端id");
+                        string ids = Console.ReadLine();
+                        Console.WriteLine($"输入给id={ids}客户端发送的消息");
+                        string mm = Console.ReadLine();
+                        int idd = int.Parse(ids);
+                        server.SendMsg(idd, mm);
+                        break;
+                    case "c all":
+                        Console.WriteLine("输入给全体客户端发送的消息");
+                        string cmall = Console.ReadLine();
+                        client.Send("c_all:"+cmall);
+                        break;
+                    case "c id":
+                        Console.WriteLine("输入要发送的客户端id");
+                        string cid = Console.ReadLine();
+                        int cidi = int.Parse(cid);
+                        Console.WriteLine($"输入给id={cid}客户端发送的消息");
+                        string cm = Console.ReadLine();
+                        client.Send("c_id:"+cidi+"。" + cm);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            Console.ReadKey();
+        }
+    }
+
+    public class TServer
+    {
+        private Socket listenSocket;
+        private SocketAsyncEventArgs listenArgs = new SocketAsyncEventArgs();
+
+        public List<Channel> acceptList = new List<Channel>();
+        public Dictionary<Channel,int> IdChient = new Dictionary<Channel,int>();
+        public Dictionary<int, Channel> ChientDic = new Dictionary<int, Channel>();
+
+        public TServer()
+        {
+            listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listenSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            listenArgs.Completed += ListenArgs_Completed;
+
+            IPEndPoint point = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8080);
+            listenSocket.Bind(point);
+            listenSocket.Listen(100);
+
+            AcceptAsync();
+        }
+
+        private void ListenArgs_Completed(object sender, SocketAsyncEventArgs e)
+        {
+            switch(e.LastOperation)
+            {
+                case SocketAsyncOperation.Accept:
+                    this.OnAcceptComplete(e);
+                    break;
+                default:
+                    Console.WriteLine("listen completed error:"+e.LastOperation.ToString());
+                    break;
+            }
+        }
+
+        private void AcceptAsync()
+        {
+            Console.WriteLine("等待连接");
+            this.listenArgs.AcceptSocket = null;
+            if (!this.listenSocket.AcceptAsync(this.listenArgs))
+            {
+                OnAcceptComplete(this.listenArgs);
+            }
+        }
+
+        private void OnReceComplete(SocketAsyncEventArgs args)
+        {
+            byte[] receBuffer = args.Buffer;
+            string msg = Encoding.Unicode.GetString(receBuffer);
+            Console.WriteLine("接收消息：" + msg);
+
+            string idTag = "name:";
+            if (msg.IndexOf(idTag) > -1)
+            {
+                Console.WriteLine("用户登陆");
+                int id = int.Parse(msg.Replace(idTag, ""));
+                Channel channel = (Channel)args.UserToken;
+                acceptList.Remove(channel);
+                IdChient.Add(channel,id);
+                ChientDic.Add(id, channel);
+            }
+
+            if(msg.IndexOf("c_all:") > -1)
+            {
+                Channel channel = (Channel)args.UserToken;
+                int id = -1;
+                IdChient.TryGetValue(channel, out id);
+
+                Console.WriteLine("转发全体消息");
+                msg = msg.Replace("c_all:", "");
+
+                SendAll($"id:{id}对所有人说：{msg}");
+            }
+
+            if(msg.IndexOf("c_id:") > -1)
+            {
+                Channel channel = (Channel)args.UserToken;
+                int id = -1;
+                IdChient.TryGetValue(channel, out id);
+                msg = msg.Replace("c_id:", "");
+                int toId = int.Parse(msg.Substring(0, 1));
+
+                Console.WriteLine($"{id}向{toId}发送消息");
+
+                Channel toChannel = null;
+
+                SendMsg(toId, msg);
+            }
+        }
+
+        private void OnAcceptComplete(SocketAsyncEventArgs args)
+        {
+            if(args.SocketError != SocketError.Success)
+            {
+                Console.WriteLine("listen error:" + args.SocketError.ToString());
+                return;
+            }
+
+            Console.WriteLine("连接成功");
+
+            Channel channel = new Channel(args.AcceptSocket, OnReceComplete, OnDisconnect);
+            acceptList.Add(channel);
+
+            this.AcceptAsync();
+        }
+
+        public void OnDisconnect(Channel channel)
+        {
+            int id = -1;
+            IdChient.TryGetValue(channel,out id);
+
+            Console.WriteLine($"id:{id}。客户端已断开连接");
+        }
+
+        public void SendMsg(int id,string msg)
+        {
+            Channel chann = null;
+            ChientDic.TryGetValue(id,out chann);
+
+            if(chann != null)
+            {
+                byte[] buff = Encoding.Unicode.GetBytes(msg);
+                chann.SendAsycn(buff);
+            }
+        }
+
+        public void SendAll(string msg)
+        {
+            byte[] buff = Encoding.Unicode.GetBytes(msg);
+            foreach (var item in ChientDic.Values)
+            {
+                item.SendAsycn(buff);
+            }
+        }
+    }
+
+    public class Channel
+    {
+        public Socket socket;
+        private SocketAsyncEventArgs sendArg = new SocketAsyncEventArgs();
+        private SocketAsyncEventArgs receArg = new SocketAsyncEventArgs();
+        public Action<SocketAsyncEventArgs> receAction;
+        public Action<Channel> disconnect;
+
+        public Channel(Socket socket,Action<SocketAsyncEventArgs> receAction,Action<Channel> disc)
+        {
+            this.socket = socket;
+            this.socket.NoDelay = true;
+            this.receAction = receAction;
+            this.disconnect = disc;
+
+            this.sendArg.Completed += SendArg_Completed;
+            this.receArg.Completed += ReceArg_Completed;
+            receArg.UserToken = this;
+            ReceiveAsync();
+        }
+
+        public void ReceiveAsync()
+        {
+            byte[] buffer = new byte[100];
+            this.receArg.SetBuffer(buffer, 0, buffer.Length);
+
+            if (!this.socket.ReceiveAsync(this.receArg))
+            {
+                OnReceiveComplete(this.receArg);
+            }
+        }
+
+        public void OnReceiveComplete(SocketAsyncEventArgs args)
+        {
+            if(args.SocketError != SocketError.Success)
+            {
+                Console.WriteLine("error");
+                return;
+            }
+
+            receAction(args);
+
+            ReceiveAsync();
+        }
+
+        public void SendAsycn(byte[] buffer)
+        {
+            sendArg.SetBuffer(buffer, 0, buffer.Length);
+            if (!this.socket.SendAsync(this.sendArg))
+            {
+                OnSendComplete(this.sendArg);
+            }
+        }
+
+        public void OnSendComplete(SocketAsyncEventArgs args)
+        {
+            if(args.SocketError != SocketError.Success)
+            {
+                Console.WriteLine("send error");
+                return;
+            }
+        }
+
+        private void ReceArg_Completed(object sender, SocketAsyncEventArgs e)
+        {
+            if(e.SocketError != SocketError.Success)
+            {
+                Console.WriteLine("rece error:" + e.SocketError);
+                disconnect(this);
+                return;
+            }
+
+            switch(e.LastOperation)
+            {
+                case SocketAsyncOperation.Receive:
+                    OnReceiveComplete(e);
+                    break;
+                default:
+                    Console.WriteLine("error");
+                    break;
+            }
+        }
+
+        private void SendArg_Completed(object sender, SocketAsyncEventArgs e)
+        {
+            if(e.SocketError != SocketError.Success)
+            {
+                Console.WriteLine("send error");
+                return;
+            }
+
+            switch(e.LastOperation)
+            {
+                case SocketAsyncOperation.Send:
+                    this.OnSendComplete(e);
+                    break;
+                default:
+                    Console.WriteLine("error");
+                    break;
+            }
+        }
+    }
+
+    public class TClient
+    {
+        public Socket socket;
+        public SocketAsyncEventArgs connectArgs = new SocketAsyncEventArgs();
+        public Channel channel;
+        public int ID;
+
+        public TClient(int id)
+        {
+            this.socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            this.socket.NoDelay = true;
+            ID = id;
+            IPEndPoint point = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8080);
+            connectArgs.RemoteEndPoint = point;
+            connectArgs.Completed += Connect_Completed;
+
+            ConnectAsync();
+        }
+
+        private void Connect_Completed(object sender, SocketAsyncEventArgs e)
+        {
+            if(e.SocketError != SocketError.Success)
+            {
+                Console.WriteLine("error");
+                return;
+            }
+
+            switch(e.LastOperation)
+            {
+                case SocketAsyncOperation.Connect:
+                    OnConnectComplete(e);
+                    break;
+                default:
+                    Console.WriteLine("error");
+                    break;
+            }
+        }
+
+        public void OnConnectComplete(SocketAsyncEventArgs args)
+        {
+            if(args.SocketError != SocketError.Success)
+            {
+                Console.WriteLine("error");
+                return;
+            }
+
+            Console.WriteLine("连接成功");
+
+            channel = new Channel(this.socket, Reve, Disconnect);
+            string idTag = "name:";
+            Send(idTag + ID);
+        }
+
+        public void Disconnect(Channel channel)
+        {
+            Console.WriteLine("断开连接");
+        }
+
+        public void ConnectAsync()
+        {
+            Console.WriteLine("等待连接");
+
+            if(!socket.ConnectAsync(this.connectArgs))
+            {
+                OnConnectComplete(connectArgs);
+            }
+        }
+
+        public void Send(string msg)
+        {
+            byte[] buffer = Encoding.Unicode.GetBytes(msg);
+            channel.SendAsycn(buffer);
+        }
+
+        public void Reve(SocketAsyncEventArgs args)
+        {
+            string msg = Encoding.Unicode.GetString(args.Buffer);
+
+            Console.WriteLine(msg);
+        }
+    }
+}
+
+```
+
+</xmp>
+</body>
+</html>

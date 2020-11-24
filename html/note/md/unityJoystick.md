@@ -1,0 +1,89 @@
+# Unity摇杆
+
+```c#
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using System;
+
+public class JoystickComponent : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
+{
+    public GameObject background;
+    public GameObject handler;
+    public GameObject direction;
+
+    public event Action<Vector2> DirectionChangeEvent;
+
+    private float maxRadius;
+    private float directionImageRadius;
+
+    private Vector2 screenPointerDownPos;
+    private Vector2 pointDownPos;
+    private Vector2 handlerPointDownPos;
+
+    public void Awake()
+    {
+        InitUI();
+        InitData();
+    }
+
+    public void Init()
+    {
+        InitUI();
+        InitData();
+    }
+
+    private void InitUI()
+    {
+        background = transform.Find("Background").gameObject;
+        handler = transform.Find("Background/Handler").gameObject;
+        direction = transform.Find("Background/Direction").gameObject;
+    }
+
+    private void InitData()
+    {
+        maxRadius = 30f;
+        directionImageRadius = direction.transform.localPosition.x;
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        Vector2 v = (eventData.position - screenPointerDownPos).normalized;
+
+        float distance = Vector2.Distance(screenPointerDownPos, eventData.position);
+        //判断拖动是否在背景里面
+        if(distance < maxRadius)
+        {
+            RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)background.transform, eventData.position, eventData.enterEventCamera, out handlerPointDownPos);
+            handler.transform.localPosition = handlerPointDownPos;
+        }
+        else
+        {
+            handler.transform.localPosition = v * new Vector2(maxRadius, maxRadius);
+        }
+        
+        //更改方向箭头位置
+        direction.gameObject.SetActive(true);
+        direction.transform.localPosition = v * new Vector2(directionImageRadius, directionImageRadius);
+        direction.transform.localEulerAngles = new Vector3(0, 0, Vector2.Angle(Vector2.right, direction.transform.localPosition) * (direction.transform.localPosition.y > 0 ? 1 : -1));
+        //回调事件
+        DirectionChangeEvent?.Invoke(v);
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        screenPointerDownPos = eventData.position;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)transform, eventData.position, eventData.enterEventCamera, out pointDownPos);
+        background.transform.localPosition = pointDownPos;
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        handler.transform.localPosition = Vector2.zero;
+        background.transform.localPosition = Vector2.zero;
+        direction.gameObject.SetActive(false);
+    }
+
+}
+```

@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<xmp>
 ## Shader
 
 如果是在编译器下，物体显示有阴影，模型显示正常，而打包出APK后就没有阴影了，这可能是打包设置的问题。
@@ -60,3 +69,7 @@ Start是在对象被第一次enable之后，在Update之前调用的，Start在�
 1. Awake函数在对象初始化之后立刻就会调用，换句话说，对象初始化之后第一调用的函数就是 Awake；而Start是在对象初始化后，第一次Update之前调用的，
 在Start中进行初始化不是很安全，因为它可能被其他自定义的函数抢先。
 2. 如果对象（GameObject）本身没激活，那么 Awake，Start都不会调用。
+
+</xmp>
+</body>
+</html>

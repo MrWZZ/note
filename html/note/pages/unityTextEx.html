@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<xmp>
+# Text 扩展
+
+增加文字下划线，字间距调整
+
+```c#
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class TextEx : Text
+{
+    [Header("是否启用下划线")]
+    public bool useUnderLine = true;
+    // 下划线距离底部的距离
+    public float underDistance = 0f;
+    // 下划线厚度
+    public float thickness = 1f;
+
+    [Header("字间距")]
+    public float textSpan = 0;
+
+    private Vector2 uv;
+    private float z;
+
+    // 从font纹理中获取指定字符的uv
+    private Vector2 SetUV()
+    {
+        font.RequestCharactersInTexture("*", fontSize, fontStyle);
+        CharacterInfo info;
+        if (font.GetCharacterInfo('*', out info, fontSize, fontStyle))
+        {
+            // 获取中间点的uv
+            return (info.uvBottomLeft + info.uvBottomRight + info.uvTopLeft + info.uvTopRight) * 0.25f;
+        }
+        return Vector2.zero;
+    }
+
+    protected override void OnPopulateMesh(VertexHelper toFill)
+    {
+        base.OnPopulateMesh(toFill);
+        if (toFill.currentVertCount <= 0) { return; }
+        
+        UseTextSpan(toFill);
+        UseUnderLine(toFill);
+    }
+
+    #region 字间距
+
+    private void UseTextSpan(VertexHelper toFill)
+    {
+        if (textSpan == 0) return;
+
+        var oList = new List<UIVertex>();
+        toFill.GetUIVertexStream(oList);
+        float lastX = oList[0].position.x;
+        float curSpan = 1;
+
+        for (int i = 0; i < oList.Count; i += 6)
+        {
+            if (i > 0 && oList[i].position.x > lastX)
+            {
+                var vertIndex = (i / 6) * 4;
+                var totalSpan = curSpan * textSpan;
+                curSpan++;
+
+                var vert = oList[i];
+                vert.position.x += totalSpan;
+                oList[i] = vert;
+                toFill.SetUIVertex(vert, vertIndex);
+
+                vert = oList[i + 1];
+                vert.position.x += totalSpan;
+                oList[i] = vert;
+                toFill.SetUIVertex(vert, vertIndex + 1);
+
+                vert = oList[i + 2];
+                vert.position.x += totalSpan;
+                oList[i] = vert;
+                toFill.SetUIVertex(vert, vertIndex + 2);
+
+                vert = oList[i + 4];
+                vert.position.x += totalSpan;
+                oList[i] = vert;
+                toFill.SetUIVertex(vert, vertIndex + 3);
+            }
+            else
+            {
+                curSpan = 1;
+                lastX = oList[i].position.x;
+            }
+        }
+    }
+
+    #endregion
+
+    #region 下划线
+
+    private void UseUnderLine(VertexHelper toFill)
+    {
+        if (!useUnderLine) return;
+
+        var oList = new List<UIVertex>();
+        toFill.GetUIVertexStream(oList);
+        uv = SetUV();
+        float startX = oList[0].position.x;
+        float startY = oList[0].position.y;
+        float lastX = startX;
+        z = oList[0].position.z;
+
+        // 换行处理
+        for (int i = 0; i < oList.Count; i += 6)
+        {
+            if (oList[i].position.x < lastX || (oList[i].position.x == lastX && oList[i].position.y < startY))
+            {
+                // 换行
+                CreateUnderLineMesh(toFill, new Vector3(startX, startY), new Vector3(oList[i - 3].position.x, startY));
+                startX = oList[i].position.x;
+            }
+
+            if (oList[i + 2].position.y < startY)
+            {
+                startY = oList[i + 2].position.y;
+            }
+
+            lastX = oList[i].position.x;
+        }
+
+        CreateUnderLineMesh(toFill, new Vector3(startX, startY), new Vector3(oList[oList.Count - 3].position.x, startY));
+    }
+
+    // 生成下划线网格
+    private void CreateUnderLineMesh(VertexHelper vh,Vector3 leftPos,Vector3 rightPos)
+    {
+        UIVertex vert = UIVertex.simpleVert;
+        vert.color = color;
+        vert.uv0 = uv;
+        vert.position.z = z;
+
+        vert.position = leftPos - Vector3.up * underDistance;
+        var v0 = vert;
+        vert.position = vert.position - Vector3.up * thickness;
+        var v3 = vert;
+
+        vert.position = rightPos - Vector3.up * underDistance;
+        var v1 = vert;
+        vert.position = vert.position - Vector3.up * thickness;
+        var v2 = vert;
+
+        UIVertex[] newv = new UIVertex[] { v0, v1, v2, v3 };
+        vh.AddUIVertexQuad(newv);
+    }
+
+    #endregion
+}
+```
+</xmp>
+</body>
+</html>

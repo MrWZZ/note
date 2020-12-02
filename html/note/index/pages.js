@@ -7,4 +7,5 @@ var pages = [
     {name : "Tcp Demo",url:"../pages/tcpServerDemo.html"},
     {name : "Unity",url:"../pages/unity.html"},
     {name : "Unity摇杆",url:"../pages/unityJoyStick.html"},
+    {name : "Unity TextEx",url:"../pages/unityTextEx.html"},
 ];

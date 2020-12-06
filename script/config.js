@@ -25,7 +25,14 @@ function Config() {
                 { name: "数据结构和算法", url: `${knowledgeRootPath}/algorithms/index/algorithms.html` },
                 { name: "压缩算法", url: `${knowledgeRootPath}/compressionAlgorithm/index/compressionAlgorithm.html` },
             ]
-        }
+        },
+        {
+            title: "Unity",
+            type: [
+                { name: "Unity Tool", url: `${knowledgeRootPath}/unityTool/index/unityTool.html` },
+                { name: "Unity Shader", url: `${knowledgeRootPath}/unityShader/index/unityShader.html` },
+            ]
+        },
     ]
 }
 var Config = new Config();

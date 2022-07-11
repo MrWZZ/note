@@ -23,6 +23,8 @@
     width: calc(100vw - 600px);
     min-height: calc(100vh - 140px);
     color: #634d3e;
+    font-size: large;
+    line-height: 1.5em;
 }
 
 #rightContent {

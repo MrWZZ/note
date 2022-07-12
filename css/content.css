@@ -20,7 +20,8 @@
 
 #content {
     padding: 20px;
-    width: calc(100vw - 600px);
+    /* 640px 是 #category 和 #rightContent 的宽度 加 #content 的 padding 宽度*/
+    width: calc(100vw - 640px);
     min-height: calc(100vh - 140px);
     color: #634d3e;
     font-size: large;
@@ -30,6 +31,37 @@
 #rightContent {
     width: 300px;
     box-shadow: -10px 0 10px 0px rgba(0, 0, 0, 0.2);
+}
+
+.sub_root {
+    padding: 20px 0px 0px 20px;
+}
+
+.sub_index {
+    cursor: pointer;
+    display: list-item;
+    list-style: inside;
+    list-style-type: circle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 5px;
+}
+
+.index2 {
+    padding-left: 20px;
+}
+
+.index3 {
+    padding-left: 40x;
+}
+
+.index4 {
+    padding-left: 60px;
+}
+
+.index5 {
+    padding-left: 80px;
 }
 
 @media screen and (max-width: 1400px) {

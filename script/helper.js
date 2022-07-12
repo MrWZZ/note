@@ -95,6 +95,8 @@ function LoadPageToContent(path) {
         hljs.initHighlighting.called = false;
         hljs.initHighlighting();
         document.body.removeChild(iframe);
+        // 生成右侧目录
+        CreateIndexesElement();
     }
     document.body.appendChild(iframe);
 }
@@ -244,5 +246,30 @@ function FixCellPos() {
         curElement.style.top = posArr[posIndex][1] + "px";
 
         posArr[posIndex][1] += curElement.offsetHeight + cellMargin;
+    }
+}
+
+//生成目录
+function CreateIndexesElement() {
+
+    var content = document.getElementById("content");
+    var right = document.getElementById("rightContent");
+    if(right.children.length > 0) {
+        var subRoot = right.children[0];
+        right.removeChild(subRoot);
+    }
+
+    var indexes = content.getElementsByClassName("index")
+    var subRoot = document.createElement("div");
+    subRoot.setAttribute("class", "sub_root");
+    right.appendChild(subRoot);
+    for (var i = 0; i < indexes.length; i++) {
+        var curE = indexes[i];
+        var level = Number.parseInt(curE.nodeName.substring(1));
+        var cell = document.createElement("div");
+        cell.innerText = curE.innerText;
+        cell.setAttribute("class", "sub_index index" + level);
+        cell.setAttribute("onclick", `window.location.href = "#${curE.id}"`);
+        subRoot.appendChild(cell);
     }
 }

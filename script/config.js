@@ -33,12 +33,6 @@ function Config() {
                 { name: "Unity Shader", url: `${knowledgeRootPath}/unityShader/index/unityShader.html` },
             ]
         },
-        {
-            title: "3D Max",
-            type: [
-                { name: "随笔", url: `${knowledgeRootPath}/3dmax/index/3dmax.html` },
-            ]
-        },
     ]
 }
 var Config = new Config();

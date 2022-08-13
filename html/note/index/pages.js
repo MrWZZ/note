@@ -5,4 +5,5 @@ var pages = [
     {name : "其他",url:"../pages/other.html"},
     {name : "Tcp Demo",url:"../pages/tcpServerDemo.html"},
     {name : "Unity",url:"../pages/unity.html"},
+    {name : "Blender",url:"../pages/blender.html"},
 ];

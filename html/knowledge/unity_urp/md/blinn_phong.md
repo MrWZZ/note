@@ -8,7 +8,7 @@ Shader "URP/BlinnPhong"
     {
         _DiffuseColor("DiffuseColor",Color) = (1,1,1,1)
         _SpecularColor("SpecColor",Color) = (1,1,1,1)
-        _Gloss("Gloss",Range(20,100)) = 1
+        _Gloss("Gloss",Range(20,100)) = 20
     }
     SubShader
     {

@@ -31,6 +31,7 @@ function Config() {
             type: [
                 { name: "Unity Tool", url: `${knowledgeRootPath}/unityTool/index/unityTool.html` },
                 { name: "Unity Shader", url: `${knowledgeRootPath}/unityShader/index/unityShader.html` },
+                { name: "Unity URP", url: `${knowledgeRootPath}/unity_urp/index/unity_urp.html` },
             ]
         },
     ]

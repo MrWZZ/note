@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<xmp>
+![image](../res/blinn-phong.png)
+
+```c++
+
+Shader "URP/BlinnPhong"
+{
+    Properties
+    {
+        _DiffuseColor("DiffuseColor",Color) = (1,1,1,1)
+        _SpecularColor("SpecColor",Color) = (1,1,1,1)
+        _Gloss("Gloss",Range(20,100)) = 1
+    }
+    SubShader
+    {
+        Tags{"RenderType" = "Opaque"}
+
+        Pass
+        {
+            HLSLPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+            float4 _DiffuseColor;
+            float4 _SpecularColor;
+            half _Gloss;
+            CBUFFER_END
+
+            struct Attributes
+            {
+                float4 positionOS               : POSITION;
+                float3 normalOS                 : NORMAL;
+                float4 tangentOS                : TANGENT;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings 
+            {
+                float4 positionCS               : SV_POSITION;
+                float3 positionWS               : TEXCOORD1;
+                float3 normalWS                 : TEXCOORD2;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            Varyings vert(Attributes input)
+            {
+                Varyings output = (Varyings)0;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+
+                VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
+                VertexNormalInputs normalInput = GetVertexNormalInputs(input.normalOS, input.tangentOS);
+
+                output.positionCS = vertexInput.positionCS;
+                output.positionWS = vertexInput.positionWS;
+                output.normalWS = normalInput.normalWS;
+
+                return output;
+            }
+
+            half4 frag(Varyings input) : SV_Target
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                
+                // 梯度环境光照情况下的天空环境光照颜色。
+                half3 ambient = unity_AmbientSky.rgb;
+                float3 normalWS = input.normalWS;
+                float3 positionWS = input.positionWS;
+                float3 lightWS = normalize(_MainLightPosition.xyz);
+
+                // 计算漫反射
+                float3 diffuseValue = saturate(dot(normalWS , lightWS));
+                // 提高暗部亮度
+                diffuseValue = clamp(diffuseValue, 0.15, 1);
+                half3 diffuse = _MainLightColor.rgb * _DiffuseColor * diffuseValue;
+
+                // 计算高光反射
+                float3 viewWS = normalize(_WorldSpaceCameraPos.xyz - positionWS);
+
+                // 视线方向与反射方向的接近程度 近似 半程方向与法线方向的接近程度
+                // 半程向量
+                float3 halfWS = normalize(lightWS + viewWS);
+
+                half3 specular = _MainLightColor.rgb * _SpecularColor * (pow(saturate(dot(halfWS, normalWS)), _Gloss));
+
+                half4 col = half4(ambient + diffuse + specular, 1.0);
+                
+                return col;
+            }
+
+            ENDHLSL
+        }
+    }
+    FallBack "Specular"
+}
+
+```
+</xmp>
+</body>
+</html>

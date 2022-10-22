@@ -1,4 +1,4 @@
-![image](../res/blinn-phong.png)
+![image](../res/blinn_phong.png)
 
 ```c++
 

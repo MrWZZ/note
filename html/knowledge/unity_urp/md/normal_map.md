@@ -31,7 +31,7 @@ Shader "URP/NormalMap"
         _SpecularColor("SpecColor", Color) = (1,1,1,1)
         _Gloss("Gloss", Range(20, 100)) = 20
         _NormalScale("Normal Scale", Range(-1, 1)) = 1.0
-        _NormalMap("Normal Map", 2D) = "bump" {}
+        [NoScaleOffset] _NormalMap("Normal Map", 2D) = "bump" {}
     }
     SubShader
     {

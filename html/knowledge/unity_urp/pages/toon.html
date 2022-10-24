@@ -7,19 +7,22 @@
     <title>Document</title>
 </head>
 <body>
-<xmp>
-![image](../res/blinn_phong.png)
+![image](../res/toon_effect.jpg)
 
 ```c++
-
-Shader "URP/BlinnPhong"
+Shader "URP/Toon"
 {
     Properties
     {
+        _RampMap("RampMap", 2D) = "white" {}
         _DiffuseColor("DiffuseColor",Color) = (1,1,1,1)
         _SpecularColor("SpecColor",Color) = (1,1,1,1)
         _Gloss("Gloss",Range(20,100)) = 20
+		[HDR] _RimColor("Rim Color", Color) = (1,1,1,1)
+		_RimAmount("Rim Amount", Range(0, 1)) = 0.716
+		_RimThreshold("Rim Threshold", Range(0, 1)) = 0.1	
     }
+
     SubShader
     {
         Tags{"RenderType" = "Opaque"}
@@ -28,16 +31,26 @@ Shader "URP/BlinnPhong"
         {
             HLSLPROGRAM
 
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma vertex vert
             #pragma fragment frag
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/2D/Include/LightingUtility.hlsl"
+
+            TEXTURE2D(_RampMap);
+            SAMPLER(sampler_RampMap);
 
             CBUFFER_START(UnityPerMaterial)
-            float4 _DiffuseColor;
-            float4 _SpecularColor;
+            float4 _RampMap_ST;
+            half4 _DiffuseColor;
+            half4 _SpecularColor;
             half _Gloss;
+            half4 _RimColor;
+            half _RimAmount;
+            half _RimThreshold;
             CBUFFER_END
 
             struct Attributes
@@ -53,8 +66,14 @@ Shader "URP/BlinnPhong"
                 float4 positionCS               : SV_POSITION;
                 float3 positionWS               : TEXCOORD1;
                 float3 normalWS                 : TEXCOORD2;
+                float3 viewDirWS                : TEXCOORD3;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
+
+            half ShadowAtten(float3 worldPosition)
+            {
+                return MainLightRealtimeShadow(TransformWorldToShadowCoord(worldPosition));
+            }
 
             Varyings vert(Attributes input)
             {
@@ -64,10 +83,11 @@ Shader "URP/BlinnPhong"
 
                 VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
                 VertexNormalInputs normalInput = GetVertexNormalInputs(input.normalOS, input.tangentOS);
-
+                
                 output.positionCS = vertexInput.positionCS;
                 output.positionWS = vertexInput.positionWS;
                 output.normalWS = normalInput.normalWS;
+                output.viewDirWS = GetWorldSpaceViewDir(vertexInput.positionWS);
 
                 return output;
             }
@@ -80,24 +100,34 @@ Shader "URP/BlinnPhong"
                 half3 ambient = unity_AmbientSky.rgb;
                 float3 positionWS = input.positionWS;
                 float3 normalWS = normalize(input.normalWS);
-                float3 lightWS = normalize(_MainLightPosition.xyz);
+                float3 lightDirWS = normalize(_MainLightPosition.xyz);
+                float3 viewDirWS = normalize(input.viewDirWS);
 
-                // 计算漫反射
-                float3 diffuseValue = saturate(dot(normalWS , lightWS));
-                // 提高暗部亮度
-                diffuseValue = clamp(diffuseValue, 0.15, 1);
-                half3 diffuse = _MainLightColor.rgb * _DiffuseColor * diffuseValue;
+                float lightValue = dot(normalWS , lightDirWS);
 
-                // 计算高光反射
-                float3 viewWS = normalize(_WorldSpaceCameraPos.xyz - positionWS);
+                half shadow = ShadowAtten(positionWS);
+
+                // ramp 贴图采样
+                half rampValue = (lightValue * 0.5 + 0.5) * shadow;
+                half3 ramp = SAMPLE_TEXTURE2D(_RampMap, sampler_RampMap, half2(rampValue, rampValue));
 
                 // 视线方向与反射方向的接近程度 近似 半程方向与法线方向的接近程度
                 // 半程向量
-                float3 halfWS = normalize(lightWS + viewWS);
+                float3 halfWS = normalize(lightDirWS + viewDirWS);
+                float lightIntensity = smoothstep(0, 0.01, lightValue * shadow);	
+                float specularValue = saturate(dot(halfWS, normalWS)) * lightIntensity;
 
-                half3 specular = _MainLightColor.rgb * _SpecularColor * (pow(saturate(dot(halfWS, normalWS)), _Gloss));
+                float specularIntensity = pow(specularValue, _Gloss);
+                float specularIntensitySmooth = smoothstep(0.005, 0.01, specularIntensity);
+                half3 specular = _MainLightColor.rgb * _SpecularColor * specularIntensitySmooth;
 
-                half4 col = half4(ambient + diffuse + specular, 1.0);
+                // 外发光
+                float rimDot = 1 - dot(viewDirWS, normalWS);
+				float rimIntensity = rimDot * pow(lightValue, _RimThreshold);
+                rimIntensity = smoothstep(_RimAmount - 0.01, _RimAmount + 0.01, rimIntensity);
+                float4 rim = rimIntensity * _RimColor;
+
+                half4 col = half4(ambient + ramp + specular + rim, 1.0);
                 
                 return col;
             }
@@ -105,10 +135,7 @@ Shader "URP/BlinnPhong"
             ENDHLSL
         }
     }
-    FallBack "Specular"
 }
-
 ```
-</xmp>
 </body>
 </html>
